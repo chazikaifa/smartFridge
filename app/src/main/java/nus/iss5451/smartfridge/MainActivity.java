@@ -1,8 +1,18 @@
 package nus.iss5451.smartfridge;
 
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 
@@ -15,64 +25,74 @@ import nus.iss5451.smartfridge.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
-
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
+    private DataFetchingService dataFetchingService = null;
+    private ArrayList<Item> itemArray = null;
+    private ArrayList<Object> historyArray = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //Refer to https://firebase.google.com/docs/database/android/start?authuser=0&hl=zh
-        String TAG = "[Firebase]";
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference history = database.getReference("Log");
-        history.addValueEventListener(new ValueEventListener() {
+        ServiceConnection serviceConnection = new ServiceConnection() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                // This method is called once with the initial value and again
-                // whenever data at this location is updated.
-                Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
-                Log.d(TAG, "History Log is: " + map);
+            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                dataFetchingService = ((DataFetchingService.LocalBinder)iBinder).getService();
+                DataFetchingService.MyCallback itemCallback = new DataFetchingService.MyCallback() {
+                    @Override
+                    public void onDataUpdate(ArrayList data) {
+                        itemArray = data;
+//                        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+//                        for(Item item : itemArray) {
+//                            if (item.expiredDate.equals("")) {
+//                                item.expiredDate = ft.format(new Date());
+//                            }
+//                        }
+//                        Log.d("[MainActivity]",data.toString());
+                        //If you want to update the items in the realtime database, change isRemote to 'true'.
+                        //Otherwise it will just update items locally.
+                        //Note that update realtime database will trigger onDataUpdate(),
+                        //So, do NOT update the realtime database here, or it may create a loop.
+//                        dataFetchingService.updateItem(data, false,
+//                                (error, ref) -> Log.d("[MainActivity]","update Complete!"));
+                    }
+
+                    @Override
+                    public void onDataCanceled(DatabaseError error) {
+
+                    }
+                };
+                dataFetchingService.setItemCallback(itemCallback);
+
+                DataFetchingService.MyCallback historyCallback = new DataFetchingService.MyCallback() {
+                    @Override
+                    public void onDataUpdate(ArrayList data) {
+                        historyArray = data;
+                    }
+
+                    @Override
+                    public void onDataCanceled(DatabaseError error) {
+
+                    }
+                };
+                dataFetchingService.setLogCallback(historyCallback);
             }
 
             @Override
-            public void onCancelled(DatabaseError error) {
-                // Failed to read value
-                Log.w(TAG, "Failed to read value.", error.toException());
+            public void onServiceDisconnected(ComponentName componentName) {
+                dataFetchingService = null;
             }
-        });
-        DatabaseReference recent = database.getReference("Most Recent");
-        recent.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                // This method is called once with the initial value and again
-                // whenever data at this location is updated.
-                Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
-                String humid = map.get("humid").toString();
-                String temp = map.get("temp").toString();
-                Toast.makeText(MainActivity.this, "Recent humid is "+humid+" and temp is "+temp, Toast.LENGTH_LONG).show();
-                Log.d(TAG, "Recent Value is: " + map);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError error) {
-                // Failed to read value
-                Log.w(TAG, "Failed to read value.", error.toException());
-            }
-        });
+        };
+        bindService(new Intent(this,DataFetchingService.class),serviceConnection,BIND_AUTO_CREATE);
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
