@@ -16,6 +16,7 @@ import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 
+import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -25,11 +26,18 @@ import nus.iss5451.smartfridge.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Dictionary;
 import java.util.Map;
+
+import androidx.navigation.fragment.NavHostFragment;
+
+import org.w3c.dom.Text;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,9 +47,22 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<Item> itemArray = null;
     private ArrayList<Object> historyArray = null;
 
+    private Dictionary<Item, TextView>  ArrayDict = null;
+
+
+
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        ScrollView display = findViewById(R.id.IngredientsDisplay);
+
+        TextView humidity = findViewById(R.id.HumidityValue);
+        TextView temperature = findViewById(R.id.TemperatureValue);
+
 
         ServiceConnection serviceConnection = new ServiceConnection() {
             @Override
@@ -51,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onDataUpdate(ArrayList data) {
                         itemArray = data;
+
 //                        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 //                        for(Item item : itemArray) {
 //                            if (item.expiredDate.equals("")) {
@@ -64,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
                         //So, do NOT update the realtime database here, or it may create a loop.
 //                        dataFetchingService.updateItem(data, false,
 //                                (error, ref) -> Log.d("[MainActivity]","update Complete!"));
+
                     }
 
                     @Override
@@ -102,7 +125,6 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
