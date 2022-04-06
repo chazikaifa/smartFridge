@@ -29,6 +29,7 @@ import android.view.MenuItem;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -161,5 +162,11 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         return NavigationUI.navigateUp(navController, appBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+
+    private void ChangeValueForTextView(TextView textView, float x, int decimalPlace){
+        BigDecimal bd = new BigDecimal(x);
+        bd = bd.setScale(2);
+        textView.setText(String.valueOf(bd.floatValue()));
     }
 }
