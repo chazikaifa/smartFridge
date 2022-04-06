@@ -50,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Dictionary<Item, TextView>  ArrayDict = null;
 
+    ScrollView ingredientDisplay = null;
+
 
 
 
@@ -59,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ScrollView display = findViewById(R.id.IngredientsDisplay);
+        ingredientDisplay = findViewById(R.id.IngredientsDisplay);
 
         TextView humidity = findViewById(R.id.HumidityValue);
         TextView temperature = findViewById(R.id.TemperatureValue);
@@ -168,5 +170,10 @@ public class MainActivity extends AppCompatActivity {
         BigDecimal bd = new BigDecimal(x);
         bd = bd.setScale(2);
         textView.setText(String.valueOf(bd.floatValue()));
+    }
+    private void AddIngredient(Item item){
+        TextView tv = new TextView(this);
+        tv.setText(item.type + "  " + item.expiredDate);
+        ingredientDisplay.addView((tv));
     }
 }
