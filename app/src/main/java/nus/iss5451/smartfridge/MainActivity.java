@@ -28,6 +28,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -46,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private DataFetchingService dataFetchingService = null;
     private ArrayList<Item> itemArray = null;
-    private ArrayList<Object> historyArray = null;
+    private Map<String,Object> recent_log = null;
 
     private Dictionary<Item, TextView>  ArrayDict = null;
 
@@ -71,9 +72,8 @@ public class MainActivity extends AppCompatActivity {
                 dataFetchingService = ((DataFetchingService.LocalBinder)iBinder).getService();
                 DataFetchingService.MyCallback itemCallback = new DataFetchingService.MyCallback() {
                     @Override
-                    public void onDataUpdate(ArrayList data) {
-                        itemArray = data;
-
+                    public void onDataUpdate(Object data) {
+                        itemArray = (ArrayList<Item>) data;
 //                        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 //                        for(Item item : itemArray) {
 //                            if (item.expiredDate.equals("")) {
@@ -85,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
                         //Otherwise it will just update items locally.
                         //Note that update realtime database will trigger onDataUpdate(),
                         //So, do NOT update the realtime database here, or it may create a loop.
+                        //Instead, you should call this after the user input the expiredDate.
 //                        dataFetchingService.updateItem(data, false,
 //                                (error, ref) -> Log.d("[MainActivity]","update Complete!"));
 
@@ -99,8 +100,12 @@ public class MainActivity extends AppCompatActivity {
 
                 DataFetchingService.MyCallback historyCallback = new DataFetchingService.MyCallback() {
                     @Override
-                    public void onDataUpdate(ArrayList data) {
-                        historyArray = data;
+                    public void onDataUpdate(Object data) {
+                        recent_log = (Map<String, Object>) data;
+                        double temp,humid;
+                        temp = (double) recent_log.get("temperature");
+                        humid = (double) recent_log.get("humidity");
+                        Toast.makeText(MainActivity.this, "temperature is "+temp+" and humidity is "+humid, Toast.LENGTH_LONG).show();
                     }
 
                     @Override

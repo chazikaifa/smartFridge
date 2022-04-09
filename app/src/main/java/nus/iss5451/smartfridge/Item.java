@@ -22,6 +22,12 @@ public class Item implements Serializable {
         String fd = ft.format(new Date());
         this.addDate = map.get("addDate") == null?"":(String) map.get("addDate");
     }
+    public Item(String type){
+        this.type = type;
+        this.expiredDate = "";
+        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        this.addDate = ft.format(new Date());
+    }
     public Item(String type,String addDate){
         this.type = type;
         this.expiredDate = "";
