@@ -103,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
                                 Item item = listAdapter.getItem(position);
                                 Intent i = new Intent(MainActivity.this, ItemDetailsActivity.class);
                                 i.putExtra("itemName", itemArrayList.get(position).type);
+                                i.putExtra("addDate", itemArrayList.get(position).addDate);
 
                                 startActivity(i);
 

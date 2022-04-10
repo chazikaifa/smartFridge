@@ -23,8 +23,10 @@ public class ItemDetailsActivity extends AppCompatActivity {
         if (intent != null) {
 
             String itemName = intent.getStringExtra("itemName");
+            String addDate = intent.getStringExtra("addDate");
 
             binding.itemName.setText(itemName);
+            binding.addDate.setText((addDate));
 
 
         }
