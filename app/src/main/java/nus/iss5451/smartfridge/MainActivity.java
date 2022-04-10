@@ -40,33 +40,51 @@ import java.util.Map;
 import androidx.navigation.fragment.NavHostFragment;
 
 import org.w3c.dom.Text;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
-    private ActivityMainBinding binding;
+
     private DataFetchingService dataFetchingService = null;
-    private ArrayList<Item> itemArray = null;
+    private ArrayList<Item> itemArrayList = new ArrayList<>();
     private Map<String,Object> recent_log = null;
 
     private Dictionary<Item, TextView>  ArrayDict = null;
 
     ScrollView ingredientDisplay = null;
 
+    String[] listItem;
 
-
-
-
+    ActivityMainBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ingredientDisplay = findViewById(R.id.IngredientsDisplay);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+        //listItem = getResources().getStringArray(R.array.array_technology);
 
-        TextView humidity = findViewById(R.id.HumidityValue);
-        TextView temperature = findViewById(R.id.TemperatureValue);
+/*        ListAdapter listAdapter = new ListAdapter(MainActivity.this,itemArrayList);
+        binding.listview.setAdapter(listAdapter);
+        binding.listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                            @Override
+                                            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                                                Item item = listAdapter.getItem(position);
+                                                //set date?
+                                            }
+                                        });
+        binding.listview.setAdapter(listAdapter);
+        binding.listview.setClickable(true);*/
 
+
+        //ingredientDisplay = findViewById(R.id.IngredientsDisplay);
+
+        //TextView humidity = findViewById(R.id.HumidityValue);
+        //TextView temperature = findViewById(R.id.TemperatureValue);
 
         ServiceConnection serviceConnection = new ServiceConnection() {
             @Override
@@ -75,7 +93,22 @@ public class MainActivity extends AppCompatActivity {
                 DataFetchingService.MyCallback itemCallback = new DataFetchingService.MyCallback() {
                     @Override
                     public void onDataUpdate(Object data) {
-                        itemArray = (ArrayList<Item>) data;
+                        itemArrayList = (ArrayList<Item>) data;
+                        ListAdapter listAdapter = new ListAdapter(MainActivity.this,itemArrayList);
+                        binding.listview.setAdapter(listAdapter);
+                        binding.listview.setClickable(true);
+                        binding.listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                Item item = listAdapter.getItem(position);
+                                Intent i = new Intent(MainActivity.this, ItemDetailsActivity.class);
+                                i.putExtra("itemName", itemArrayList.get(position).type);
+
+                                startActivity(i);
+
+                            }
+                        });
+
 //                        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 //                        for(Item item : itemArray) {
 //                            if (item.expiredDate.equals("")) {
@@ -108,7 +141,15 @@ public class MainActivity extends AppCompatActivity {
                         temp = (double) recent_log.get("temperature");
                         humid = (double) recent_log.get("humidity");
                         Toast.makeText(MainActivity.this, "temperature is "+temp+" and humidity is "+humid, Toast.LENGTH_LONG).show();
+                        //binding.HumidityValue.setText(String.format("%.1f", humid));
+                        SetDataDisplay(temp, 0, binding.TemperatureValue, "℃");
+                        SetDataDisplay(humid, 1,binding.HumidityValue, "%");
                     }
+
+                    private void SetDataDisplay(double value, int decimalPlace, TextView view, String suffix){
+                        view.setText(String.format("%." + Integer.toString(decimalPlace) + "f", value) + suffix);
+                    }
+
 
                     @Override
                     public void onDataCanceled(DatabaseError error) {
@@ -125,22 +166,16 @@ public class MainActivity extends AppCompatActivity {
         };
         bindService(new Intent(this,DataFetchingService.class),serviceConnection,BIND_AUTO_CREATE);
 
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+
 
         setSupportActionBar(binding.toolbar);
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-        binding.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
     }
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -171,11 +206,7 @@ public class MainActivity extends AppCompatActivity {
                 || super.onSupportNavigateUp();
     }
 
-    private void ChangeValueForTextView(TextView textView, float x, int decimalPlace){
-        BigDecimal bd = new BigDecimal(x);
-        bd = bd.setScale(2);
-        textView.setText(String.valueOf(bd.floatValue()));
-    }
+
     private void AddIngredient(Item item){
         TextView tv = new TextView(this);
         tv.setText(item.type + "  " + item.expiredDate);
