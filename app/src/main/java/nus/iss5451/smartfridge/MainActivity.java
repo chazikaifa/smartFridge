@@ -1,8 +1,10 @@
 package nus.iss5451.smartfridge;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.Bundle;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.database.DatabaseError;
@@ -45,6 +47,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity {
+
+    private final int tempThreshold = 4;
 
     private AppBarConfiguration appBarConfiguration;
 
@@ -141,8 +145,17 @@ public class MainActivity extends AppCompatActivity {
                         double temp,humid;
                         temp = (double) recent_log.get("temperature");
                         humid = (double) recent_log.get("humidity");
-                        Toast.makeText(MainActivity.this, "temperature is "+temp+" and humidity is "+humid, Toast.LENGTH_LONG).show();
+
+                        //Toast.makeText(MainActivity.this, "temperature is "+temp+" and humidity is "+humid, Toast.LENGTH_LONG).show();
                         //binding.HumidityValue.setText(String.format("%.1f", humid));
+
+                        if (temp > tempThreshold){
+                            binding.TemperatureValue.setTextColor(Color.RED);
+                        }
+                        //SetDataDisplay(temp, 0, binding.TemperatureValue, "℃");
+                        //SetDataDisplay(humid, 1,binding.HumidityValue, "%");
+
+
                         SetDataDisplay(temp, 0, binding.TemperatureValue, "℃");
                         SetDataDisplay(humid, 1,binding.HumidityValue, "%");
                     }
@@ -208,9 +221,4 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void AddIngredient(Item item){
-        TextView tv = new TextView(this);
-        tv.setText(item.type + "  " + item.expiredDate);
-        ingredientDisplay.addView((tv));
-    }
 }
