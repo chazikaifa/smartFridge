@@ -1,50 +1,40 @@
 package nus.iss5451.smartfridge;
 
-import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Bundle;
-import com.google.android.material.snackbar.Snackbar;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.IBinder;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.DatePicker;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
 
-import androidx.fragment.app.Fragment;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
-import nus.iss5451.smartfridge.databinding.ActivityMainBinding;
+import com.google.firebase.database.DatabaseError;
 
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import java.math.BigDecimal;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.Dictionary;
 import java.util.Map;
 
-import androidx.navigation.fragment.NavHostFragment;
-
-import org.w3c.dom.Text;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
+import nus.iss5451.smartfridge.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -56,12 +46,6 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<Item> itemArrayList = new ArrayList<>();
     private Map<String,Object> recent_log = null;
 
-    private Dictionary<Item, TextView>  ArrayDict = null;
-
-    ScrollView ingredientDisplay = null;
-
-    String[] listItem;
-
     ActivityMainBinding binding;
 
     @Override
@@ -70,25 +54,6 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        //listItem = getResources().getStringArray(R.array.array_technology);
-
-/*        ListAdapter listAdapter = new ListAdapter(MainActivity.this,itemArrayList);
-        binding.listview.setAdapter(listAdapter);
-        binding.listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                                            @Override
-                                            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                                                Item item = listAdapter.getItem(position);
-                                                //set date?
-                                            }
-                                        });
-        binding.listview.setAdapter(listAdapter);
-        binding.listview.setClickable(true);*/
-
-
-        //ingredientDisplay = findViewById(R.id.IngredientsDisplay);
-
-        //TextView humidity = findViewById(R.id.HumidityValue);
-        //TextView temperature = findViewById(R.id.TemperatureValue);
 
         ServiceConnection serviceConnection = new ServiceConnection() {
             @Override
@@ -105,29 +70,33 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                                 Item item = listAdapter.getItem(position);
-                                Intent i = new Intent(MainActivity.this, ItemDetailsActivity.class);
-                                i.putExtra("itemName", itemArrayList.get(position).type);
-                                i.putExtra("addDate", itemArrayList.get(position).addDate);
 
-                                startActivity(i);
+                                Calendar calendar = Calendar.getInstance();
+                                if(!item.expiredDate.equals("")){
+                                    SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                                    try {
+                                        Date ed = ft.parse(item.expiredDate);
+                                        assert ed != null;
+                                        calendar.setTime(ed);
+                                    } catch (ParseException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                DatePickerDialog dialog = new DatePickerDialog(MainActivity.this, new DatePickerDialog.OnDateSetListener() {
+                                    @Override
+                                    public void onDateSet(DatePicker datePicker, int i, int i1, int i2) {
+                                        String month = (i1 + 1) < 10?"0"+(i1+1):(i1+1)+"";
+                                        String day = i2 < 10?"0"+i2:i2+"";
+                                        item.expiredDate = i +"-"+month+"-"+day + " 00:00:00";
+                                        listAdapter.notifyDataSetChanged();
+                                        dataFetchingService.updateItem(itemArrayList, true, (error, ref) -> Log.d("[MainActivity]","update Complete!"));
+                                    }
+                                },calendar.get(Calendar.YEAR),calendar.get(Calendar.MONTH),calendar.get(Calendar.DAY_OF_MONTH));
+                                dialog.show();
 
                             }
                         });
-
-//                        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-//                        for(Item item : itemArray) {
-//                            if (item.expiredDate.equals("")) {
-//                                item.expiredDate = ft.format(new Date());
-//                            }
-//                        }
-//                        Log.d("[MainActivity]",data.toString());
-                        //If you want to update the items in the realtime database, change isRemote to 'true'.
-                        //Otherwise it will just update items locally.
-                        //Note that update realtime database will trigger onDataUpdate(),
-                        //So, do NOT update the realtime database here, or it may create a loop.
-                        //Instead, you should call this after the user input the expiredDate.
-//                        dataFetchingService.updateItem(data, false,
-//                                (error, ref) -> Log.d("[MainActivity]","update Complete!"));
 
                     }
 
@@ -146,14 +115,12 @@ public class MainActivity extends AppCompatActivity {
                         temp = (double) recent_log.get("temperature");
                         humid = (double) recent_log.get("humidity");
 
-                        //Toast.makeText(MainActivity.this, "temperature is "+temp+" and humidity is "+humid, Toast.LENGTH_LONG).show();
-                        //binding.HumidityValue.setText(String.format("%.1f", humid));
-
                         if (temp > tempThreshold){
                             binding.TemperatureValue.setTextColor(Color.RED);
                         }
-                        //SetDataDisplay(temp, 0, binding.TemperatureValue, "℃");
-                        //SetDataDisplay(humid, 1,binding.HumidityValue, "%");
+                        if (humid > 70 || humid < 20){
+                            binding.HumidityValue.setTextColor(Color.RED);
+                        }
 
 
                         SetDataDisplay(temp, 0, binding.TemperatureValue, "℃");
@@ -179,8 +146,6 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         bindService(new Intent(this,DataFetchingService.class),serviceConnection,BIND_AUTO_CREATE);
-
-
 
         setSupportActionBar(binding.toolbar);
 

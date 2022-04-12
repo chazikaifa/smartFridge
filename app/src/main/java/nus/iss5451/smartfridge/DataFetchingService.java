@@ -1,14 +1,24 @@
 package nus.iss5451.smartfridge;
 
+import android.app.Dialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.LongDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -16,7 +26,11 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,6 +44,10 @@ public class DataFetchingService extends Service {
     private Map<String,Object> recent_log = new HashMap<>();
     private ArrayList<String> tempItem = null;
     private boolean syn_flag = false;
+
+    private NotificationCompat.Builder builder;
+    private NotificationManagerCompat manager;
+    private NotificationChannel channel;
 
     public interface MyCallback{
         void onDataUpdate(Object data);
@@ -99,9 +117,21 @@ public class DataFetchingService extends Service {
         return binder;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onCreate() {
         super.onCreate();
+
+        channel = new NotificationChannel("Smart Fridge","smart Fridge Alert",NotificationManager.IMPORTANCE_HIGH);
+        builder = new NotificationCompat.Builder(DataFetchingService.this,"Smart Fridge")
+                .setSmallIcon(R.drawable.warning);
+        manager = NotificationManagerCompat.from(DataFetchingService.this);
+        if(!manager.areNotificationsEnabled()){
+            Toast.makeText(DataFetchingService.this, "No Notification Access!", Toast.LENGTH_SHORT).show();
+            Log.d(TAG,"No Notification Access");
+        }
+        manager.createNotificationChannel(channel);
+
         database = FirebaseDatabase.getInstance();
 
         ref_item = database.getReference("items");
@@ -112,9 +142,25 @@ public class DataFetchingService extends Service {
                 // whenever data at this location is updated.
                 ArrayList items = (ArrayList) dataSnapshot.getValue();
                 itemArray = new ArrayList<>();
+                int index = 0;
                 for(Object itemMap:items){
                     Item item = new Item((Map)itemMap);
                     itemArray.add(item);
+                    if(item.type != "No data"){
+                        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                        try {
+                            Date ex = ft.parse(item.expiredDate);
+                            if(new Date().getTime() > ex.getTime()){
+                                builder.setContentTitle("Smart Fridge Exception Alert")
+                                        .setContentText("Item "+item.type+" is Expired")
+                                        .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                                manager.notify(index,builder.build());
+                            }
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    index++;
                 }
                 if(itemArray.size() == 1 && itemArray.get(0).type.equals("No data")){
                     itemArray = new ArrayList<>();
@@ -147,6 +193,25 @@ public class DataFetchingService extends Service {
                 // whenever data at this location is updated.
                 recent_log = (Map<String, Object>) dataSnapshot.getValue();
                 assert recent_log != null;
+
+                double temp,humid;
+                temp = (double) recent_log.get("temperature");
+                humid = (double) recent_log.get("humidity");
+                DecimalFormat df = new DecimalFormat("0.00");
+                if(temp > 4){
+                    builder.setContentTitle("Smart Fridge Exception Alert")
+                            .setContentText("The temperature now is "+ df.format(temp))
+                            .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                    manager.notify(100,builder.build());
+                }
+
+                if(humid > 70 || humid < 20){
+                    builder.setContentTitle("Smart Fridge Exception Alert")
+                            .setContentText("The humidity now is "+df.format(humid))
+                            .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                    manager.notify(101,builder.build());
+                }
+
                 //If item data haven't receive, set flag true and wait for the items
                 ArrayList<String> itemString = (ArrayList<String>) recent_log.get("item(s)");
                 if(itemArray == null){
@@ -177,4 +242,5 @@ public class DataFetchingService extends Service {
         this.itemCallback = null;
         return super.onUnbind(intent);
     }
+
 }

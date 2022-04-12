@@ -1,5 +1,6 @@
 package nus.iss5451.smartfridge;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,15 +14,23 @@ import androidx.annotation.Nullable;
 
 import org.w3c.dom.Text;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class ListAdapter extends ArrayAdapter<Item> {
 
+    private Context context;
+    private AlertDialog.Builder builder;
 
     public ListAdapter(Context context, ArrayList<Item> userArrayList){
-
         super(context,R.layout.item_layout,userArrayList);
+        this.context = context;
 
+        builder = new AlertDialog.Builder(context);
+        builder.setTitle("Please input expiry date");
+        builder.setMessage("Expiry Date:");
     }
 
     @NonNull
@@ -38,9 +47,26 @@ public class ListAdapter extends ArrayAdapter<Item> {
 
         TextView itemName = convertView.findViewById(R.id.item_name);
         TextView expiryDate = convertView.findViewById(R.id.expiryDate);
+        TextView addDate = convertView.findViewById(R.id.addDate);
+        ImageView warning = convertView.findViewById(R.id.warning);
+
 
         itemName.setText(item.type);
+        addDate.setText(item.addDate);
         expiryDate.setText(item.expiredDate);
+
+        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        try {
+            Date ex = ft.parse(item.expiredDate);
+            if(new Date().getTime() > ex.getTime()){
+                warning.setVisibility(View.VISIBLE);
+            }else{
+                warning.setVisibility(View.INVISIBLE);
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+            warning.setVisibility(View.INVISIBLE);
+        }
 
         return convertView;
     }
