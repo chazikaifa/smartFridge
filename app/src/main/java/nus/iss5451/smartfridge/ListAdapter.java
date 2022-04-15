@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 
 import org.w3c.dom.Text;
 
@@ -49,6 +50,7 @@ public class ListAdapter extends ArrayAdapter<Item> {
         TextView expiryDate = convertView.findViewById(R.id.expiryDate);
         TextView addDate = convertView.findViewById(R.id.addDate);
         ImageView warning = convertView.findViewById(R.id.warning);
+        ImageView warning_y = convertView.findViewById(R.id.warning_yellow);
 
 
         itemName.setText(item.type);
@@ -58,14 +60,21 @@ public class ListAdapter extends ArrayAdapter<Item> {
         SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         try {
             Date ex = ft.parse(item.expiredDate);
-            if(new Date().getTime() > ex.getTime()){
+            long diff = ex.getTime() - new Date().getTime();
+            if (diff <= 24 * 60 * 60 * 1000 && diff > 0) {
+                warning_y.setVisibility(View.VISIBLE);
+                warning.setVisibility(View.GONE);
+            } else if (diff <= 0) {
+                warning_y.setVisibility(View.GONE);
                 warning.setVisibility(View.VISIBLE);
             }else{
-                warning.setVisibility(View.INVISIBLE);
+                warning.setVisibility(View.GONE);
+                warning_y.setVisibility(View.GONE);
             }
         } catch (ParseException e) {
             e.printStackTrace();
-            warning.setVisibility(View.INVISIBLE);
+            warning.setVisibility(View.GONE);
+            warning_y.setVisibility(View.GONE);
         }
 
         return convertView;

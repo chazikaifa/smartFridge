@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Food data</string>
+    <string name="app_name">Smart Fridge</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">Smart Fridge Data</string>

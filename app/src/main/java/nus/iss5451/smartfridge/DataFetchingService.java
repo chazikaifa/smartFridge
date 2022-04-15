@@ -6,11 +6,11 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.nfc.Tag;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.LongDef;
@@ -142,25 +142,30 @@ public class DataFetchingService extends Service {
                 // whenever data at this location is updated.
                 ArrayList items = (ArrayList) dataSnapshot.getValue();
                 itemArray = new ArrayList<>();
-                int index = 0;
-                for(Object itemMap:items){
-                    Item item = new Item((Map)itemMap);
+                for(int i = 0;i < items.size();i++){
+                    Map itemMap = (Map) items.get(i);
+                    Item item = new Item(itemMap);
                     itemArray.add(item);
-                    if(item.type != "No data"){
+                    if(!item.type.equals("No data")) {
                         SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                         try {
                             Date ex = ft.parse(item.expiredDate);
-                            if(new Date().getTime() > ex.getTime()){
+                            long diff = ex.getTime() - new Date().getTime();
+                            if (diff <= 24 * 60 * 60 * 1000 && diff > 0) {
                                 builder.setContentTitle("Smart Fridge Exception Alert")
-                                        .setContentText("Item "+item.type+" is Expired")
+                                        .setContentText("Item " + item.type + " is Expired tomorrow")
                                         .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-                                manager.notify(index,builder.build());
+                                manager.notify(i, builder.build());
+                            } else if (diff <= 0) {
+                                builder.setContentTitle("Smart Fridge Exception Alert")
+                                        .setContentText("Item " + item.type + " is already Expired")
+                                        .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                                manager.notify(i, builder.build());
                             }
                         } catch (ParseException e) {
                             e.printStackTrace();
                         }
                     }
-                    index++;
                 }
                 if(itemArray.size() == 1 && itemArray.get(0).type.equals("No data")){
                     itemArray = new ArrayList<>();
